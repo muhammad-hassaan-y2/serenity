@@ -15,7 +15,7 @@ export default function HomePage() {
     <div className="">
 
       <AuthModel />
-      <h1 className="text-4xl font-bold mb-6">Welcome to the Quiz App</h1>
+      <h1 className="text-4xl font-bold mb-6">Welcome to the </h1>
 
       {/* Login and Sign Up Buttons */}
        
