@@ -1,24 +1,43 @@
-// app/page.tsx
-"use client";
+'use client'
 
-import { useState } from "react";
-import AuthModal from "@/components/AuthModal"; // Import the AuthModal component
-import AuthModel from "@/components/AuthModal";
+import { useState } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import dynamic from 'next/dynamic'
+import Navbar from '@/components/Navbar'
+import Hero from '@/components/Hero'
+import Features from '@/components/Features'
+import Testimonials from '@/components/Testimonials'
+import CallToAction from '@/components/CallToAction'
+import Footer from '@/components/Footer'
 
-export default function HomePage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+const AuthModel = dynamic(() => import('@/components/AuthModal'), { ssr: false })
 
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
+export default function LandingPage() {
+  const [isAuthOpen, setIsAuthOpen] = useState(false)
+  const [isSignUp, setIsSignUp] = useState(true)
+
+  const handleOpenAuth = (signUp: boolean) => {
+    setIsSignUp(signUp)
+    setIsAuthOpen(true)
+  }
 
   return (
-    <div className="">
+    <div className="min-h-screen bg-gradient-to-br from-cyan-900 to-blue-900 text-white">
+      <Navbar onOpenAuth={handleOpenAuth} />
+      <Hero onOpenAuth={handleOpenAuth} />
+      <Features />
+      <Testimonials />
+      <CallToAction onOpenAuth={handleOpenAuth} />
+      <Footer />
 
-      <AuthModel />
-      <h1 className="text-4xl font-bold mb-6">Welcome to the </h1>
-
-      {/* Login and Sign Up Buttons */}
-       
+      <Dialog open={isAuthOpen} onOpenChange={setIsAuthOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-gradient-to-br from-cyan-900 to-blue-900 text-white border border-cyan-500/30">
+          <DialogHeader>
+            <DialogTitle className="text-cyan-300">{isSignUp ? 'Create Account' : 'Welcome Back'}</DialogTitle>
+          </DialogHeader>
+          <AuthModel isSignUp={isSignUp} setIsSignUp={setIsSignUp} />
+        </DialogContent>
+      </Dialog>
     </div>
-  );
+  )
 }

@@ -1,10 +1,11 @@
 // app/api/auth/verify-otp/route.ts
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prsima';
+import bcrypt from 'bcryptjs';
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const { email, otp } = body;
+  const { email, otp, password } = body;
 
   try {
     // Find the OTP entry by email
@@ -21,9 +22,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid or expired OTP' }, { status: 400 });
     }
 
-    // Proceed with user registration or login logic here
+    // After OTP verification, create the user in the database
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    return NextResponse.json({ message: 'OTP verified successfully' });
+    const newUser = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        role: 'STUDENT', // Default to 'STUDENT' role
+      },
+    });
+
+    return NextResponse.json({ message: 'OTP verified and user created successfully', user: newUser });
   } catch (error) {
     console.error('Error verifying OTP:', error);
     return NextResponse.json({ error: 'Failed to verify OTP' }, { status: 500 });
