@@ -20,6 +20,8 @@ import {
   Target,
   Zap,
   Menu,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import Chatbot from './Chatbot'
 import DailyDiary from './DailyDairy'
@@ -81,12 +83,11 @@ export default function Dashboard() {
       <AnimatePresence mode="wait">
         {(sidebarOpen || !isMobile) && (
           <motion.aside
-            initial={{ x: -300, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -300, opacity: 0 }}
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: sidebarOpen ? 240 : 80, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className={`
-              ${sidebarOpen ? 'w-64' : 'w-20'} 
               flex flex-col
               bg-gradient-to-b from-[#0c4a6e] to-[#0284c7]
               border-r border-[#22d3ee]/20
@@ -162,6 +163,16 @@ export default function Dashboard() {
                 </Button>
               </motion.div>
             </div>
+
+            {/* Collapse button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleSidebar}
+              className="absolute top-1/2 -right-4 bg-[#22d3ee] text-[#0c4a6e] rounded-full shadow-lg"
+            >
+              {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </Button>
           </motion.aside>
         )}
       </AnimatePresence>
@@ -327,6 +338,7 @@ function AnimatedCard({ title, value, icon: Icon, color, increase }) {
               transition={{ duration: 1.5, delay: 0.5 }}
             />
           </motion.div>
+        
         </CardContent>
       </Card>
     </motion.div>

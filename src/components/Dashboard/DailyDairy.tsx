@@ -1,118 +1,199 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Button } from "@/components/ui/button"
+import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
-import { Smile, Meh, Frown } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { format } from "date-fns"
+import { Pencil, Trash2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
-export default function DailyDiary({ colors }) {
+export default function DailyDiary() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
-  const [entry, setEntry] = useState('')
-  const [mood, setMood] = useState<'happy' | 'neutral' | 'sad' | null>(null)
-  const [entries, setEntries] = useState<Array<{ date: string; mood: string; entry: string }>>([])
+  const [reflection, setReflection] = useState("")
+  const [entries, setEntries] = useState<{[key: string]: string}>({})
+  const [editingEntry, setEditingEntry] = useState<string | null>(null)
 
   useEffect(() => {
-    // Simulating data fetching
+    // Fetch user's diary entries
     const fetchEntries = async () => {
-      // In a real application, this would be an API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      setEntries([
-        { date: '2023-05-01', mood: 'happy', entry: 'Great study session today!' },
-        { date: '2023-05-02', mood: 'neutral', entry: 'Struggled with some concepts, but making progress.' },
-        { date: '2023-05-03', mood: 'sad', entry: 'Feeling overwhelmed with the workload.' },
-        { date: '2023-05-04', mood: 'happy', entry: 'Aced my quiz! Hard work pays off.' },
-        { date: '2023-05-05', mood: 'neutral', entry: 'Average day, need to focus more tomorrow.' },
-      ])
+      try {
+        const response = await fetch('/api/diary-entries')
+        const data = await response.json()
+        setEntries(data)
+      } catch (error) {
+        console.error('Failed to fetch diary entries:', error)
+      }
     }
     fetchEntries()
   }, [])
 
-  const handleSave = () => {
-    if (selectedDate && mood && entry) {
-      const newEntry = {
-        date: selectedDate.toISOString().split('T')[0],
-        mood,
-        entry,
+  const handleSaveReflection = async () => {
+    if (selectedDate && reflection) {
+      const dateKey = format(selectedDate, 'yyyy-MM-dd')
+      const updatedEntries = { ...entries, [dateKey]: reflection }
+      setEntries(updatedEntries)
+      setReflection("")
+
+      // Save the entry to the backend
+      try {
+        await fetch('/api/save-diary-entry', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: dateKey, entry: reflection }),
+        })
+      } catch (error) {
+        console.error('Failed to save diary entry:', error)
       }
-      setEntries([...entries, newEntry])
-      setEntry('')
-      setMood(null)
     }
   }
 
-  const moodData = entries.map(entry => ({
-    date: entry.date,
-    mood: entry.mood === 'happy' ? 2 : entry.mood === 'neutral' ? 1 : 0,
-  }))
+  const handleEditEntry = async (date: string, updatedEntry: string) => {
+    const updatedEntries = { ...entries, [date]: updatedEntry }
+    setEntries(updatedEntries)
+    setEditingEntry(null)
+
+    // Update the entry in the backend
+    try {
+      await fetch('/api/update-diary-entry', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date, entry: updatedEntry }),
+      })
+    } catch (error) {
+      console.error('Failed to update diary entry:', error)
+    }
+  }
+
+  const handleDeleteEntry = async (date: string) => {
+    const updatedEntries = { ...entries }
+    delete updatedEntries[date]
+    setEntries(updatedEntries)
+
+    // Delete the entry from the backend
+    try {
+      await fetch('/api/delete-diary-entry', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date }),
+      })
+    } catch (error) {
+      console.error('Failed to delete diary entry:', error)
+    }
+  }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <Card style={{background: colors.background, color: colors.text}}>
-        <CardHeader>
-          <CardTitle>Daily Reflection</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            onSelect={setSelectedDate}
-            className="mb-4"
-            styles={{
-              head_cell: { color: colors.accent },
-              day: { color: colors.text },
-              day_selected: { background: colors.primary },
-            }}
-          />
-          <Textarea
-            value={entry}
-            onChange={(e) => setEntry(e.target.value)}
-            placeholder="Write your thoughts for the day..."
-            className="mb-4"
-            style={{background: colors.secondary, color: colors.text, borderColor: colors.accent}}
-          />
-          <div className="flex justify-between mb-4">
-            <Button variant={mood === 'happy' ? 'default' : 'outline'} onClick={() => setMood('happy')} style={{borderColor: colors.accent, background: mood === 'happy' ? colors.success : 'transparent'}}>
-              <Smile className="w-6 h-6" />
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="bg-[#0284c7]/20 border-[#22d3ee]/20">
+          <CardHeader>
+            <CardTitle className="text-[#f0f9ff]">Daily Reflection</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              placeholder="Write your thoughts for the day..."
+              value={reflection}
+              onChange={(e) => setReflection(e.target.value)}
+              className="min-h-[200px] bg-[#0c4a6e] text-[#f0f9ff] border-[#22d3ee] mb-4"
+            />
+            <Button 
+              onClick={handleSaveReflection} 
+              className="w-full bg-[#22d3ee] text-[#0c4a6e] hover:bg-[#22d3ee]/80"
+            >
+              Save Reflection
             </Button>
-            <Button variant={mood === 'neutral' ? 'default' : 'outline'} onClick={() => setMood('neutral')} style={{borderColor: colors.accent, background: mood === 'neutral' ? colors.warning : 'transparent'}}>
-              <Meh className="w-6 h-6" />
-            </Button>
-            <Button variant={mood === 'sad' ? 'default' : 'outline'} onClick={() => setMood('sad')} style={{borderColor: colors.accent, background: mood === 'sad' ? colors.error : 'transparent'}}>
-              <Frown className="w-6 h-6" />
-            </Button>
-          </div>
-          <Button onClick={handleSave} className="w-full" style={{background: colors.primary, color: colors.text}}>Save Entry</Button>
-        </CardContent>
-      </Card>
-      <Card style={{background: colors.background, color: colors.text}}>
-        <CardHeader>
-          <CardTitle>Reflection Summary</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-64 mb-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={moodData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={colors.accent} />
-                <XAxis dataKey="date" stroke={colors.text} />
-                <YAxis domain={[0, 2]} ticks={[0, 1, 2]} tickFormatter={(value) => ['Sad', 'Neutral', 'Happy'][value]} stroke={colors.text} />
-                <Tooltip contentStyle={{background: colors.secondary, border: `1px solid ${colors.accent}`, color: colors.text}} />
-                <Line type="monotone" dataKey="mood" stroke={colors.primary} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="space-y-2">
-            {entries.slice(-3).reverse().map((entry, index) => (
-              <div key={index} className="p-2 rounded" style={{background: colors.secondary}}>
-                <p className="text-sm font-semibold">{entry.date}</p>
-                <p className="text-sm">{entry.entry.slice(0, 50)}...</p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        <Card className="bg-[#0284c7]/20 border-[#22d3ee]/20">
+          <CardHeader>
+            <CardTitle className="text-[#f0f9ff]">Calendar</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              className="rounded-md border border-[#22d3ee] bg-[#0c4a6e] text-[#f0f9ff]"
+            />
+          </CardContent>
+        </Card>
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+        className="md:col-span-2"
+      >
+        <Card className="bg-[#0284c7]/20 border-[#22d3ee]/20">
+          <CardHeader>
+            <CardTitle className="text-[#f0f9ff]">Past Reflections</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AnimatePresence>
+              {Object.entries(entries).map(([date, entry], index) => (
+                <motion.div
+                  key={date}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                  className="mb-4 p-4 rounded-lg bg-[#0c4a6e]/50"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-[#22d3ee] font-semibold">{format(new Date(date), 'MMMM d, yyyy')}</h3>
+                    <div className="flex gap-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="text-[#22d3ee] hover:text-[#f0f9ff] hover:bg-[#22d3ee]/20">
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="bg-[#0c4a6e] border-[#22d3ee]/20">
+                          <DialogHeader>
+                            <DialogTitle className="text-[#f0f9ff]">Edit Reflection</DialogTitle>
+                          </DialogHeader>
+                          <Textarea
+                            value={editingEntry === date ? editingEntry : entry}
+                            onChange={(e) => setEditingEntry(e.target.value)}
+                            className="min-h-[200px] bg-[#0284c7]/20 text-[#f0f9ff] border-[#22d3ee] mb-4"
+                          />
+                          <Button 
+                            onClick={() => handleEditEntry(date, editingEntry || entry)}
+                            className="w-full bg-[#22d3ee] text-[#0c4a6e] hover:bg-[#22d3ee]/80"
+                          >
+                            Save Changes
+                          </Button>
+                        </DialogContent>
+                      </Dialog>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleDeleteEntry(date)}
+                        className="text-red-500 hover:text-red-600 hover:bg-red-500/20"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-[#f0f9ff]">{entry}</p>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   )
 }

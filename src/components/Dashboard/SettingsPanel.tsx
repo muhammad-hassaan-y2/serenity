@@ -1,94 +1,183 @@
 'use client'
 
-import { useState } from 'react'
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Slider } from "@/components/ui/slider"
-import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Bell, Moon, Sun, Volume2 } from 'lucide-react'
+import { useToast } from "@/components/ui/use-toast"
 
 export default function SettingsPanel() {
-  const [darkMode, setDarkMode] = useState(false)
-  const [fontSize, setFontSize] = useState(16)
-  const [notifications, setNotifications] = useState({
-    reminders: true,
-    recommendations: true,
-    streakAlerts: true,
+  const [settings, setSettings] = useState({
+    notifications: true,
+    soundEffects: true,
+    darkMode: false,
+    studyReminders: 'daily',
+    focusTime: 25,
   })
+  const { toast } = useToast()
 
-  const handleFontSizeChange = (value: number[]) => {
-    setFontSize(value[0])
-  }
+  useEffect(() => {
+    // Fetch user settings
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('/api/user-settings')
+        const data = await response.json()
+        setSettings(data)
+      } catch (error) {
+        console.error('Failed to fetch user settings:', error)
+      }
+    }
+    fetchSettings()
+  }, [])
 
-  const handleNotificationChange = (key: keyof typeof notifications) => {
-    setNotifications(prev => ({ ...prev, [key]: !prev[key] }))
-  }
+  const handleSettingChange = async (key: string, value: any) => {
+    const updatedSettings = { ...settings, [key]: value }
+    setSettings(updatedSettings)
 
-  const handleFeedbackSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    // Implement feedback submission logic here
-    console.log('Feedback submitted')
+    // Update settings in the backend
+    try {
+      await fetch('/api/update-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedSettings),
+      })
+      toast({
+        title: "Settings updated",
+        description: "Your changes have been saved successfully.",
+      })
+    } catch (error) {
+      console.error('Failed to update settings:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update settings. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Theme and Accessibility</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="dark-mode">Dark Mode</Label>
-            <Switch
-              id="dark-mode"
-              checked={darkMode}
-              onCheckedChange={setDarkMode}
-            />
-          </div>
-          <div>
-            <Label htmlFor="font-size">Font Size</Label>
-            <Slider
-              id="font-size"
-              min={12}
-              max={24}
-              step={1}
-              value={[fontSize]}
-              onValueChange={handleFontSizeChange}
-              className="mt-2"
-            />
-            <p className="text-sm text-gray-500 mt-1">{fontSize}px</p>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Notification Preferences</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {Object.entries(notifications).map(([key, value]) => (
-            <div key={key} className="flex items-center justify-between">
-              <Label htmlFor={key}>{key.charAt(0).toUpperCase() + key.slice(1)}</Label>
+    <div className="space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="bg-[#0284c7]/20 border-[#22d3ee]/20">
+          <CardHeader>
+            <CardTitle className="text-[#f0f9ff] flex items-center gap-2">
+              <Bell className="w-5 h-5 text-[#22d3ee]" />
+              Notifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="notifications" className="text-[#f0f9ff]">Enable notifications</Label>
               <Switch
-                id={key}
-                checked={value}
-                onCheckedChange={() => handleNotificationChange(key as keyof typeof notifications)}
+                id="notifications"
+                checked={settings.notifications}
+                onCheckedChange={(checked) => handleSettingChange('notifications', checked)}
               />
             </div>
-          ))}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Feedback</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleFeedbackSubmit} className="space-y-4">
-            <Textarea placeholder="Share your thoughts or suggestions..." />
-            <Button type="submit">Submit Feedback</Button>
-          </form>
-        </CardContent>
-      </Card>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="soundEffects" className="text-[#f0f9ff]">Sound effects</Label>
+              <Switch
+                id="soundEffects"
+                checked={settings.soundEffects}
+                onCheckedChange={(checked) => handleSettingChange('soundEffects', checked)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="studyReminders" className="text-[#f0f9ff]">Study reminders</Label>
+              <Select
+                value={settings.studyReminders}
+                onValueChange={(value) => handleSettingChange('studyReminders', value)}
+              >
+                <SelectTrigger id="studyReminders" className="bg-[#0c4a6e] text-[#f0f9ff] border-[#22d3ee]">
+                  <SelectValue placeholder="Select frequency" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0c4a6e] text-[#f0f9ff] border-[#22d3ee]">
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        <Card className="bg-[#0284c7]/20 border-[#22d3ee]/20">
+          <CardHeader>
+            <CardTitle className="text-[#f0f9ff] flex items-center gap-2">
+              <Sun className="w-5 h-5 text-[#22d3ee]" />
+              Appearance
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="darkMode" className="text-[#f0f9ff]">Dark mode</Label>
+              <Switch
+                id="darkMode"
+                checked={settings.darkMode}
+                onCheckedChange={(checked) => handleSettingChange('darkMode', checked)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+      >
+        <Card className="bg-[#0284c7]/20 border-[#22d3ee]/20">
+          <CardHeader>
+            <CardTitle className="text-[#f0f9ff] flex items-center gap-2">
+              <Volume2 className="w-5 h-5 text-[#22d3ee]" />
+              Focus Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="focusTime" className="text-[#f0f9ff]">Focus session duration (minutes)</Label>
+              <Input
+                id="focusTime"
+                type="number"
+                value={settings.focusTime}
+                onChange={(e) => handleSettingChange('focusTime', parseInt(e.target.value))}
+                className="bg-[#0c4a6e] text-[#f0f9ff] border-[#22d3ee]"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.6 }}
+      >
+        <Button 
+          onClick={() => toast({
+            title: "Settings saved",
+            description: "All your settings have been successfully saved.",
+          })}
+          className="w-full bg-[#22d3ee] text-[#0c4a6e] hover:bg-[#22d3ee]/80"
+        >
+          Save All Settings
+        </Button>
+      </motion.div>
     </div>
   )
 }
