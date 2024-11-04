@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession, signOut } from 'next-auth/react'
+import { useRouter } from 'next/router'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -39,43 +41,60 @@ const sidebarItems = [
 ]
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState('overview')
-  const [isMobile, setIsMobile] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [userData, setUserData] = useState({
-    studyTime: 0,
-    tasksCompleted: 0,
-    quizzesTaken: 0,
-    streak: 0,
-    recentActivities: [],
-    studyGoals: []
-  })
-
-  useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth < 768
-      setIsMobile(mobile)
-      setSidebarOpen(!mobile)
-    }
-    handleResize()
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await fetch('/api/user-data')
-        const data = await response.json()
-        setUserData(data)
-      } catch (error) {
-        console.error('Failed to fetch user data:', error)
+    const [activeTab, setActiveTab] = useState('overview')
+    const [isMobile, setIsMobile] = useState(false)
+    const [sidebarOpen, setSidebarOpen] = useState(true)
+    const [userData, setUserData] = useState({
+      studyTime: 0,
+      tasksCompleted: 0,
+      quizzesTaken: 0,
+      streak: 0,
+      recentActivities: [],
+      studyGoals: []
+    })
+  
+    const { data: session } = useSession()
+    
+    useEffect(() => {
+      const handleResize = () => {
+        const mobile = window.innerWidth < 768
+        setIsMobile(mobile)
+        setSidebarOpen(!mobile)
       }
-    }
-    fetchUserData()
-  }, [])
+      handleResize()
+      window.addEventListener('resize', handleResize)
+      return () => window.removeEventListener('resize', handleResize)
+    }, [])
+  
+    useEffect(() => {
+      const fetchUserData = async () => {
+        try {
+          const response = await fetch('/api/user-data')
+          const data = await response.json()
+          setUserData(data)
+        } catch (error) {
+          console.error('Failed to fetch user data:', error)
+        }
+      }
+      fetchUserData()
+    }, [])
+  
+    const toggleSidebar = () => setSidebarOpen(!sidebarOpen)
 
-  const toggleSidebar = () => setSidebarOpen(!sidebarOpen)
+  const handleLogout = async () => {
+    useEffect(() => {
+        const handleLogout = async () => {
+          if (typeof window !== 'undefined') {
+            const { useRouter } = await import('next/router')
+            const router = useRouter()
+            await signOut({ redirect: false })
+            router.push('/')
+          }
+        }
+        
+        // Attach handleLogout function to the logout button here (or use it within the component directly)
+      }, [])
+  }
 
   return (
     <div className="flex h-screen bg-[#0c4a6e]">
@@ -145,12 +164,12 @@ export default function Dashboard() {
                 className="flex items-center gap-3"
               >
                 <Avatar className="w-10 h-10 border-2 border-[#22d3ee]">
-                  <AvatarImage src="/placeholder.svg" />
-                  <AvatarFallback className="bg-[#22d3ee] text-[#0c4a6e]">JD</AvatarFallback>
+                  <AvatarImage src={session?.user?.image || '/placeholder.svg'} />
+                  <AvatarFallback className="bg-[#22d3ee] text-[#0c4a6e]">{session?.user?.name?.[0]}</AvatarFallback>
                 </Avatar>
                 {sidebarOpen && (
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-[#f0f9ff]">John Doe</p>
+                    <p className="text-sm font-medium text-[#f0f9ff]">{session?.user?.name || 'User'}</p>
                     <p className="text-xs text-[#22d3ee]">Student</p>
                   </div>
                 )}
@@ -158,6 +177,7 @@ export default function Dashboard() {
                   variant="ghost" 
                   size="icon"
                   className="text-[#22d3ee] hover:text-[#f0f9ff] hover:bg-[#22d3ee]/20"
+                  onClick={handleLogout}
                 >
                   <LogOut className="w-5 h-5" />
                 </Button>
@@ -222,70 +242,26 @@ export default function Dashboard() {
                       value={`${userData.studyTime} min`}
                       icon={Clock} 
                       color="#22d3ee"
-                      increase={`${Math.round(userData.studyTime * 0.1)} min`}
+                      increase={`${Math.round(userData.studyTime / 60)} hours`}
                     />
                     <AnimatedCard 
                       title="Tasks Completed" 
-                      value={userData.tasksCompleted.toString()}
+                      value={userData.tasksCompleted}
                       icon={CheckCircle} 
-                      color="#22c55e"
-                      increase={Math.round(userData.tasksCompleted * 0.2).toString()}
+                      color="#0284c7"
                     />
                     <AnimatedCard 
                       title="Quizzes Taken" 
-                      value={userData.quizzesTaken.toString()}
-                      icon={BookOpen} 
-                      color="#f59e0b"
-                      increase={Math.round(userData.quizzesTaken * 0.5).toString()}
+                      value={userData.quizzesTaken} 
+                      icon={Target} 
+                      color="#0ea5e9"
                     />
                     <AnimatedCard 
-                      title="Study Streak" 
+                      title="Streak" 
                       value={`${userData.streak} days`}
                       icon={Zap} 
-                      color="#06b6d4"
-                      increase={Math.round(userData.streak * 0.3).toString()}
+                      color="#38bdf8"
                     />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card className="bg-[#0284c7]/20 border-[#22d3ee]/20">
-                      <CardHeader>
-                        <CardTitle className="text-[#f0f9ff]">Recent Activity</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          {userData.recentActivities.map((activity, i) => (
-                            <motion.div
-                              key={i}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: i * 0.1 }}
-                              className="flex items-center gap-3 p-3 rounded-lg bg-[#0c4a6e]/50"
-                            >
-                              <div className="w-2 h-2 rounded-full bg-[#22d3ee]" />
-                              <span>{activity}</span>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card className="bg-[#0284c7]/20 border-[#22d3ee]/20">
-                      <CardHeader>
-                        <CardTitle className="text-[#f0f9ff]">Study Goals</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          {userData.studyGoals.map((goal, i) => (
-                            <div key={i} className="space-y-2">
-                              <div className="flex justify-between text-sm">
-                                <span>{goal.label}</span>
-                                <span>{goal.progress}%</span>
-                              </div>
-                              <Progress value={goal.progress} className="h-2 bg-[#0c4a6e]" />
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
                   </div>
                 </>
               )}
@@ -301,6 +277,7 @@ export default function Dashboard() {
     </div>
   )
 }
+
 
 function AnimatedCard({ title, value, icon: Icon, color, increase }) {
   return (

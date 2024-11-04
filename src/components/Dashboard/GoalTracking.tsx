@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from  "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
@@ -41,10 +41,15 @@ export default function GoalTracking() {
         setGoals(data)
       } catch (error) {
         console.error('Failed to fetch user goals:', error)
+        toast({
+          title: "Error",
+          description: "Failed to fetch goals. Please try again.",
+          variant: "destructive",
+        })
       }
     }
     fetchGoals()
-  }, [])
+  }, [toast])
 
   const handleAddGoal = async () => {
     if (newGoal.title && newGoal.target && newGoal.dueDate) {
@@ -62,8 +67,11 @@ export default function GoalTracking() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(goalToAdd),
         })
+        if (!response.ok) {
+          throw new Error('Failed to add goal')
+        }
         const addedGoal = await response.json()
-        setGoals([...goals, addedGoal])
+        setGoals(prevGoals => [...prevGoals, addedGoal])
         setNewGoal({ title: '', target: 0, unit: 'hours', dueDate: '' })
         toast({
           title: "Goal added",
@@ -77,6 +85,12 @@ export default function GoalTracking() {
           variant: "destructive",
         })
       }
+    } else {
+      toast({
+        title: "Incomplete information",
+        description: "Please fill in all fields to add a new goal.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -88,11 +102,14 @@ export default function GoalTracking() {
 
     // Update goal in the backend
     try {
-      await fetch('/api/update-goal', {
+      const response = await fetch('/api/update-goal', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, updates }),
       })
+      if (!response.ok) {
+        throw new Error('Failed to update goal')
+      }
       toast({
         title: "Goal updated",
         description: "Your goal has been updated successfully.",
@@ -108,16 +125,17 @@ export default function GoalTracking() {
   }
 
   const handleDeleteGoal = async (id: string) => {
-    const updatedGoals = goals.filter(goal => goal.id !== id)
-    setGoals(updatedGoals)
-
     // Delete goal from the backend
     try {
-      await fetch('/api/delete-goal', {
+      const response = await fetch('/api/delete-goal', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       })
+      if (!response.ok) {
+        throw new Error('Failed to delete goal')
+      }
+      setGoals(prevGoals => prevGoals.filter(goal => goal.id !== id))
       toast({
         title: "Goal deleted",
         description: "Your goal has been deleted successfully.",
