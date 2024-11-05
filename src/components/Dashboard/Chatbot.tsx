@@ -9,14 +9,49 @@ import { Input } from "@/components/ui/input"
 import { Mic, Send, StopCircle, MessageCircle } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
+declare global {
+  interface Window {
+    webkitSpeechRecognition: any
+  }
+}
+type SpeechRecognitionEvent = {
+  results: SpeechRecognitionResultList
+}
+
 export default function Chatbot() {
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat()
   const [isListening, setIsListening] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const recognitionRef = useRef<any>(null)
+
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window) {
+      recognitionRef.current = new window.webkitSpeechRecognition()
+      recognitionRef.current.continuous = true
+      recognitionRef.current.interimResults = false
+      recognitionRef.current.lang = 'en-US'
+
+      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+        const transcript = event.results[event.results.length - 1][0].transcript
+        handleInputChange({ target: { value: transcript } } as any)
+      }
+      
+      recognitionRef.current.onerror = (event: any) => {
+        console.error("Speech recognition error:", event.error)
+      }
+    } else {
+      console.warn("Speech recognition not supported in this browser.")
+    }
+  }, [handleInputChange])
 
   const handleVoiceInput = () => {
-    setIsListening(!isListening)
-    // Implement voice recognition logic here
+    if (isListening) {
+      recognitionRef.current?.stop()
+      setIsListening(false)
+    } else {
+      recognitionRef.current?.start()
+      setIsListening(true)
+    }
   }
 
   const quickReplies = [
