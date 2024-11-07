@@ -25,7 +25,7 @@ import {
   ChevronRight
 } from 'lucide-react'
 import Chatbot from './Chatbot'
-import DailyDiary from './DailyDiary'
+import DailyDiary from './DailyDairy'
 import GoalTracking from './GoalTracking'
 import AdaptiveStudyPath from './AdaptiveStudyPath'
 import SettingsPanel from './SettingsPanel'

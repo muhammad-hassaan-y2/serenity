@@ -9,12 +9,42 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  password  String
-  role      Role     @default(STUDENT)
+  id           String       @id @default(cuid())
+  email        String       @unique
+  name         String?
+  password     String
+  role         Role         @default(STUDENT)
+  createdAt    DateTime     @default(now())
+  topics       Topic[]
+  diaryEntries DiaryEntry[] // This line completes the relation with DiaryEntry
+}
+
+model DiaryEntry {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  date      DateTime @unique
+  entry     String
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model Topic {
+  id         String     @id @default(uuid())
+  title      String
+  progress   Int        @default(0)
+  user       User       @relation(fields: [userId], references: [id])
+  userId     String
+  subtopics  Subtopic[]
+}
+
+model Subtopic {
+  id         String   @id @default(uuid())
+  title      String
+  completed  Boolean  @default(false)
+  topic      Topic    @relation(fields: [topicId], references: [id])
+  topicId    String
 }
 
 enum Role {
