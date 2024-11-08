@@ -1,26 +1,16 @@
+// src/app/api/study-path/route.ts
 import { NextResponse } from 'next/server'
-import prisma from '@/lib/prsima'
+import { getStudyPath } from '@/lib/mockDatabase'
+import { StudyPathResponse } from '@/lib/types'
 
-export async function GET(req: Request) {
-  const url = new URL(req.url)
-  const userId = url.searchParams.get('userId')
+export async function GET() {
+  const topics = getStudyPath()
+  const currentTopic = topics.find((topic) => topic.progress < 100) || null
 
-  if (!userId) {
-    return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+  const response: StudyPathResponse = {
+    topics,
+    currentTopic,
   }
 
-  try {
-    const studyPath = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        topics: {
-          include: { subtopics: true },
-        },
-      },
-    })
-    return NextResponse.json(studyPath)
-  } catch (error) {
-    console.error('Failed to fetch study path:', error)
-    return NextResponse.json({ error: 'Failed to fetch study path' }, { status: 500 })
-  }
+  return NextResponse.json(response)
 }

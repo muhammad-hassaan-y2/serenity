@@ -124,31 +124,29 @@ export default function GoalTracking() {
     }
   }
 
-  const handleDeleteGoal = async (id: string) => {
-    // Delete goal from the backend
+  async function handleDeleteGoal(id: string) {
     try {
       const response = await fetch('/api/delete-goal', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ id }),
-      })
+      });
+  
       if (!response.ok) {
-        throw new Error('Failed to delete goal')
+        throw new Error('Failed to delete goal');
       }
-      setGoals(prevGoals => prevGoals.filter(goal => goal.id !== id))
-      toast({
-        title: "Goal deleted",
-        description: "Your goal has been deleted successfully.",
-      })
+  
+      const deletedGoal = await response.json();
+      console.log('Goal deleted:', deletedGoal);
+  
+      // Update UI as needed
     } catch (error) {
-      console.error('Failed to delete goal:', error)
-      toast({
-        title: "Error",
-        description: "Failed to delete goal. Please try again.",
-        variant: "destructive",
-      })
+      console.error('Failed to delete goal:', error);
     }
   }
+  
 
   return (
     <div className="space-y-6">
