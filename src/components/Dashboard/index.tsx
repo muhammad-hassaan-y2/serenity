@@ -18,7 +18,6 @@ import {
   LogOut,
   MessageCircle,
   Settings,
-  Target,
   Zap,
   Menu,
   ChevronLeft,

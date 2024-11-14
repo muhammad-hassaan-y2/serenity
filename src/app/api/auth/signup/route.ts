@@ -1,4 +1,3 @@
-// app/api/auth/signup/route.ts
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prsima';
 import bcrypt from 'bcryptjs';
@@ -32,6 +31,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ message: "User created successfully", user: newUser });
   } catch (error) {
+    console.error("Error creating user:", error);  // Log the error for debugging purposes
     return NextResponse.json({ error: "Failed to create user" }, { status: 500 });
   }
 }

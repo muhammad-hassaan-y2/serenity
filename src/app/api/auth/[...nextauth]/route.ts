@@ -59,7 +59,7 @@ export const authOptions = {
       session.user.role = token.role;
       return session;
     },
-    async redirect({ url, baseUrl }) {
+    async redirect({ baseUrl }) {
       return baseUrl + "/dashboard"; // Always redirect to dashboard after sign-in
     },
   },

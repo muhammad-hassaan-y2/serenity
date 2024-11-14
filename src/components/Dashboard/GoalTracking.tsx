@@ -8,8 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { BarChart, Target, Trophy, Plus, Trash2 } from 'lucide-react'
+import { Target, Trophy, Plus, Trash2 } from 'lucide-react'
 import { useToast } from "@/components/ui/use-toast"
 
 type Goal = {
@@ -94,35 +93,7 @@ export default function GoalTracking() {
     }
   }
 
-  const handleUpdateGoal = async (id: string, updates: Partial<Goal>) => {
-    const updatedGoals = goals.map(goal => 
-      goal.id === id ? { ...goal, ...updates } : goal
-    )
-    setGoals(updatedGoals)
 
-    // Update goal in the backend
-    try {
-      const response = await fetch('/api/update-goal', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, updates }),
-      })
-      if (!response.ok) {
-        throw new Error('Failed to update goal')
-      }
-      toast({
-        title: "Goal updated",
-        description: "Your goal has been updated successfully.",
-      })
-    } catch (error) {
-      console.error('Failed to update goal:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update goal. Please try again.",
-        variant: "destructive",
-      })
-    }
-  }
 
   async function handleDeleteGoal(id: string) {
     try {
@@ -225,60 +196,39 @@ export default function GoalTracking() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
+        transition={{ duration: 0.5 }}
       >
-        <Card className="bg-[#0284c7]/20 border-[#22d3ee]/20">
-          <CardHeader>
-            <CardTitle className="text-[#f0f9ff] flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-[#22d3ee]" />
-              Current Goals
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {goals.map((goal) => (
-                <div key={goal.id} className="bg-[#0c4a6e]/50 p-4 rounded-lg space-y-2">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-[#f0f9ff] font-semibold">{goal.title}</h3>
+        {goals.length > 0 && (
+          <div className="space-y-4">
+            {goals.map(goal => (
+              <Card key={goal.id} className="bg-[#0284c7]/20 border-[#22d3ee]/20">
+                <CardHeader>
+                  <CardTitle className="text-[#f0f9ff] flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-[#22d3ee]" />
+                    {goal.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <Progress value={goal.progress} max={goal.target} />
+                    <div className="flex justify-between items-center text-[#f0f9ff]">
+                      <span>{goal.progress}/{goal.target} {goal.unit}</span>
+                      <span>{goal.dueDate}</span>
+                    </div>
+                  </div>
+                  <div className="mt-4">
                     <Button
-                      variant="ghost"
-                      size="icon"
                       onClick={() => handleDeleteGoal(goal.id)}
-                      className="text-red-500 hover:text-red-600 hover:bg-red-500/20"
+                      className="w-full bg-red-600 text-[#f0f9ff]"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4 mr-2" /> Delete Goal
                     </Button>
                   </div>
-                  <div className="flex justify-between text-sm text-[#f0f9ff]">
-                    <span>Progress: {goal.progress} / {goal.target} {goal.unit}</span>
-                    <span>Due: {new Date(goal.dueDate).toLocaleDateString()}</span>
-                  </div>
-                  <Progress value={(goal.progress / goal.target) * 100} className="h-2" />
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`complete-${goal.id}`}
-                      checked={goal.completed}
-                      onCheckedChange={(checked) => handleUpdateGoal(goal.id, { completed: checked as boolean })}
-                    />
-                    <label
-                      htmlFor={`complete-${goal.id}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-[#f0f9ff]"
-                    >
-                      Mark as completed
-                    </label>
-                  </div>
-                  <Input
-                    type="number"
-                    value={goal.progress}
-                    onChange={(e) => handleUpdateGoal(goal.id, { progress: parseInt(e.target.value) })}
-                    className="bg-[#0c4a6e] text-[#f0f9ff] border-[#22d3ee] mt-2"
-                    placeholder="Update progress"
-                  />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </motion.div>
     </div>
   )

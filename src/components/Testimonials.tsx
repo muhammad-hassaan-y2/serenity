@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import Image from 'next/image'
 
 const testimonials = [
-  { name: "Alex", role: "College Student", quote: "AI Study Buddy has revolutionized my study habits. I've seen a significant improvement in my grades!", image: "/alex.png" },
+  { name: "Alex", role: "College Student", quote: "AI Study Buddy has revolutionized my study habits. I&apos;ve seen a significant improvement in my grades!", image: "/alex.png" },
   { name: "Sarah", role: "High School Senior", quote: "The personalized study plans have helped me prepare for my exams more efficiently than ever before.", image: "/sarah.png" },
   { name: "Michael", role: "Graduate Student", quote: "As a busy grad student, the 24/7 AI assistance has been invaluable for my research and coursework.", image: "/michael.png" },
 ]
@@ -29,7 +29,7 @@ export default function Testimonials() {
                 height={120}
                 className="rounded-full mb-4 border-2 border-cyan-300"
               />
-              <p className="text-cyan-100 mb-4 italic">"{testimonial.quote}"</p>
+              <p className="text-cyan-100 mb-4 italic">&quot;{testimonial.quote}&quot;</p>
               <div className="font-semibold text-cyan-300">{testimonial.name}</div>
               <div className="text-sm text-cyan-400">{testimonial.role}</div>
             </motion.div>

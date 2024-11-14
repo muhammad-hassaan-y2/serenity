@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -19,24 +19,25 @@ export default function DailyDiary() {
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchEntries()
-  }, [])
-
-  const fetchEntries = async () => {
+  const fetchEntries = useCallback(async () => {
     try {
       const response = await fetch('/api/diary-entries')
       if (!response.ok) throw new Error('Failed to fetch entries')
       const data = await response.json()
       setEntries(data)
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to load diary entries. Please try again.",
         variant: "destructive"
       })
     }
-  }
+  }, [toast])
+  
+
+  useEffect(() => {
+    fetchEntries()
+  }, [fetchEntries])
 
   const handleSaveReflection = async () => {
     if (!selectedDate || !reflection.trim()) {
@@ -47,26 +48,26 @@ export default function DailyDiary() {
       })
       return
     }
-
+  
     setIsLoading(true)
     const dateKey = format(selectedDate, 'yyyy-MM-dd')
-
+  
     try {
       const response = await fetch('/api/diary-entries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date: dateKey, entry: reflection }),
       })
-
+  
       if (!response.ok) throw new Error('Failed to save entry')
-
+  
       setEntries(prev => ({ ...prev, [dateKey]: reflection }))
       setReflection("")
       toast({
         title: "Success",
         description: "Your reflection has been saved",
       })
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to save your reflection. Please try again.",
@@ -76,6 +77,7 @@ export default function DailyDiary() {
       setIsLoading(false)
     }
   }
+  
 
   const handleEditEntry = async (date: string, updatedEntry: string) => {
     if (!updatedEntry.trim()) {
@@ -86,7 +88,7 @@ export default function DailyDiary() {
       })
       return
     }
-
+  
     setIsLoading(true)
     try {
       const response = await fetch(`/api/diary-entries/${date}`, {
@@ -94,16 +96,16 @@ export default function DailyDiary() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ entry: updatedEntry }),
       })
-
+  
       if (!response.ok) throw new Error('Failed to update entry')
-
+  
       setEntries(prev => ({ ...prev, [date]: updatedEntry }))
       setEditingEntry(null)
       toast({
         title: "Success",
         description: "Your reflection has been updated",
       })
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to update your reflection. Please try again.",
@@ -113,6 +115,7 @@ export default function DailyDiary() {
       setIsLoading(false)
     }
   }
+  
 
   const handleDeleteEntry = async (date: string) => {
     setIsLoading(true)
@@ -120,9 +123,9 @@ export default function DailyDiary() {
       const response = await fetch(`/api/diary-entries/${date}`, {
         method: 'DELETE',
       })
-
+  
       if (!response.ok) throw new Error('Failed to delete entry')
-
+  
       const updatedEntries = { ...entries }
       delete updatedEntries[date]
       setEntries(updatedEntries)
@@ -130,7 +133,7 @@ export default function DailyDiary() {
         title: "Success",
         description: "Entry deleted successfully",
       })
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to delete entry. Please try again.",
@@ -140,6 +143,7 @@ export default function DailyDiary() {
       setIsLoading(false)
     }
   }
+  
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -203,64 +207,51 @@ export default function DailyDiary() {
           <CardContent>
             <AnimatePresence>
               {Object.entries(entries).length === 0 ? (
-                <p className="text-[#f0f9ff] text-center py-8">No entries yet. Start writing your daily reflections!</p>
+                <p>No entries found for the selected date.</p>
               ) : (
-                Object.entries(entries).map(([date, entry], index) => (
+                Object.entries(entries).map(([date, entry]) => (
                   <motion.div
                     key={date}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                    className="mb-4 p-4 rounded-lg bg-[#0c4a6e]/50"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="mb-4"
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-[#22d3ee] font-semibold">
-                        {format(new Date(date), 'MMMM d, yyyy')}
-                      </h3>
-                      <div className="flex gap-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[#f0f9ff] text-lg font-semibold">{date}</p>
+                        <p className="text-[#f0f9ff] text-sm">{entry}</p>
+                      </div>
+                      <div className="flex space-x-2">
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="text-[#22d3ee] hover:text-[#f0f9ff] hover:bg-[#22d3ee]/20"
-                              disabled={isLoading}
-                            >
-                              <Pencil className="w-4 h-4" />
+                            <Button variant="ghost">
+                              <Pencil size={16} />
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="bg-[#0c4a6e] border-[#22d3ee]/20">
+                          <DialogContent>
                             <DialogHeader>
-                              <DialogTitle className="text-[#f0f9ff]">Edit Reflection</DialogTitle>
+                              <DialogTitle>Edit Entry</DialogTitle>
                             </DialogHeader>
                             <Textarea
-                              value={editingEntry === date ? editingEntry : entry}
+                              value={editingEntry ?? entry}
                               onChange={(e) => setEditingEntry(e.target.value)}
-                              className="min-h-[200px] bg-[#0284c7]/20 text-[#f0f9ff] border-[#22d3ee] mb-4"
-                              disabled={isLoading}
                             />
-                            <Button 
-                              onClick={() => handleEditEntry(date, editingEntry || entry)}
-                              className="w-full bg-[#22d3ee] text-[#0c4a6e] hover:bg-[#22d3ee]/80"
-                              disabled={isLoading}
+                            <Button
+                              onClick={() => {
+                                handleEditEntry(date, editingEntry || entry)
+                              }}
                             >
-                              {isLoading ? "Saving..." : "Save Changes"}
+                              Save Changes
                             </Button>
                           </DialogContent>
                         </Dialog>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => handleDeleteEntry(date)}
-                          className="text-red-500 hover:text-red-600 hover:bg-red-500/20"
-                          disabled={isLoading}
-                        >
-                          <Trash2 className="w-4 h-4" />
+                        <Button variant="destructive" onClick={() => handleDeleteEntry(date)}>
+                          <Trash2 size={16} />
                         </Button>
                       </div>
                     </div>
-                    <p className="text-[#f0f9ff] whitespace-pre-wrap">{entry}</p>
                   </motion.div>
                 ))
               )}

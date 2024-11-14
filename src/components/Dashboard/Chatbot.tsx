@@ -11,9 +11,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 declare global {
   interface Window {
-    webkitSpeechRecognition: any
+    webkitSpeechRecognition: SpeechRecognition
   }
 }
+
 type SpeechRecognitionEvent = {
   results: SpeechRecognitionResultList
 }
@@ -22,7 +23,7 @@ export default function Chatbot() {
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat()
   const [isListening, setIsListening] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const recognitionRef = useRef<any>(null)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
 
   useEffect(() => {
     if ('webkitSpeechRecognition' in window) {
@@ -33,10 +34,10 @@ export default function Chatbot() {
 
       recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = event.results[event.results.length - 1][0].transcript
-        handleInputChange({ target: { value: transcript } } as any)
+        handleInputChange({ target: { value: transcript } } as React.ChangeEvent<HTMLInputElement>)
       }
-      
-      recognitionRef.current.onerror = (event: any) => {
+
+      recognitionRef.current.onerror = (event: SpeechRecognitionError) => {
         console.error("Speech recognition error:", event.error)
       }
     } else {
@@ -122,7 +123,7 @@ export default function Chatbot() {
               >
                 <Button 
                   variant="outline" 
-                  onClick={() => handleInputChange({ target: { value: reply } } as any)} 
+                  onClick={() => handleInputChange({ target: { value: reply } } as React.ChangeEvent<HTMLInputElement>)} 
                   className="border-[#22d3ee] text-[#22d3ee] hover:bg-[#22d3ee]/20 hover:text-[#f0f9ff]"
                 >
                   {reply}

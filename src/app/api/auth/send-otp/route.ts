@@ -5,7 +5,7 @@ import crypto from 'crypto';
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const { email, password, name } = body;
+  const { email } = body; // Removed 'password' and 'name' as they were not used
 
   // Check if the user already exists in the User table
   const existingUser = await prisma.user.findUnique({

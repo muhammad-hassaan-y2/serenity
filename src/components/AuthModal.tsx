@@ -1,5 +1,4 @@
-'use client';
-
+"use client"
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -20,12 +19,14 @@ export default function AuthModal({ isSignUp, setIsSignUp }: AuthModalProps) {
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   // Handle sending OTP
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setLoading(true);
 
     try {
       const res = await fetch('/api/auth/send-otp', {
@@ -38,59 +39,65 @@ export default function AuthModal({ isSignUp, setIsSignUp }: AuthModalProps) {
         const errorData = await res.json();
         setError(errorData.error || 'Failed to send OTP.');
       } else {
-        setOtpSent(true); // Show OTP input field
+        setOtpSent(true);
       }
-    } catch (error) {
+    } catch (err) {
       setError('An error occurred while sending OTP.');
+      console.error('OTP send error:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   // Handle OTP verification and sign-up
-  // Handle OTP verification and sign-up
-const handleVerifyOtp = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError(null);
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
 
-  try {
-    const res = await fetch('/api/auth/verify-otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, otp, password }),
-    });
-
-    if (res.ok) {
-      // Auto-login after successful OTP verification
-      const result = await signIn('credentials', {
-        redirect: false,
-        email,
-        password,
-        callbackUrl: '/dashboard', // Redirect to dashboard
+    try {
+      const res = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp, password }),
       });
 
-      if (!result?.error) {
-        router.push('/dashboard');
-      } else {
-        setError(result.error || 'Failed to sign in after OTP verification.');
-      }
-    } else {
-      const data = await res.json();
-      setError(data.error || 'Failed to verify OTP.');
-    }
-  } catch (error) {
-    setError('An error occurred during OTP verification.');
-  }
-};
+      if (res.ok) {
+        const result = await signIn('credentials', {
+          redirect: false,
+          email,
+          password,
+          callbackUrl: '/dashboard',
+        });
 
-  // Handle Sign-In (for existing users)
+        if (!result?.error) {
+          router.push('/dashboard');
+        } else {
+          setError(result.error || 'Failed to sign in after OTP verification.');
+        }
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Failed to verify OTP.');
+      }
+    } catch (err) {
+      setError('An error occurred during OTP verification.');
+      console.error('OTP verification error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Rest of the component remains the same...
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setLoading(true);
 
     const result = await signIn('credentials', {
       redirect: false,
       email,
       password,
-      callbackUrl: '/dashboard', // Redirect to dashboard after login
+      callbackUrl: '/dashboard',
     });
 
     if (!result?.error) {
@@ -98,22 +105,24 @@ const handleVerifyOtp = async (e: React.FormEvent) => {
     } else {
       setError(result.error || 'Failed to sign in.');
     }
+    setLoading(false);
   };
 
-  // Handle Google Sign-In
   const signInWithGoogle = () => {
     signIn('google', {
-      callbackUrl: '/dashboard', // Redirect to dashboard after Google sign-in
+      callbackUrl: '/dashboard',
     });
   };
 
   return (
     <div className="p-6 bg-gradient-to-br from-cyan-900 to-blue-900 rounded-lg">
-      {error && (
-        <Alert className="bg-red-100 text-red-600 border-red-300 my-2">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      <AnimatePresence>
+        {error && (
+          <Alert className="bg-red-100 text-red-600 border-red-300 my-2">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+      </AnimatePresence>
 
       <form onSubmit={isSignUp ? (otpSent ? handleVerifyOtp : handleSendOtp) : handleSignIn} className="space-y-4 mt-6">
         <div className="space-y-2">
@@ -175,8 +184,9 @@ const handleVerifyOtp = async (e: React.FormEvent) => {
         <Button
           type="submit"
           className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-xl font-bold py-3 hover:from-cyan-600 hover:to-blue-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
+          disabled={loading}
         >
-          {isSignUp ? (otpSent ? 'Verify OTP & Sign Up' : 'Send OTP') : 'Login'}
+          {loading ? 'Processing...' : isSignUp ? (otpSent ? 'Verify OTP & Sign Up' : 'Send OTP') : 'Login'}
         </Button>
       </form>
 
@@ -191,22 +201,24 @@ const handleVerifyOtp = async (e: React.FormEvent) => {
 
       <Button
         variant="outline"
-        className="w-full bg-white text-cyan-900 border-2 border-cyan-500 hover:bg-cyan-100 transition-all duration-300 transform hover:scale-105 shadow-md text-lg font-semibold py-3"
+        className="w-full bg-white text-cyan-900 border-2 border-cyan-500 hover:bg-cyan-100 transition-all duration-300 transform hover:scale-105"
         onClick={signInWithGoogle}
+        disabled={loading}
       >
-        <svg className="mr-2 h-5 w-5" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
-          <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
-        </svg>
-        Sign in with Google
+        Google
       </Button>
 
-      <Button
-        variant="link"
-        className="w-full text-cyan-300 hover:text-cyan-100 mt-4 text-lg font-semibold"
-        onClick={() => setIsSignUp(!isSignUp)}
-      >
-        {isSignUp ? 'Already have an account? Login' : "Don't have an account? Sign Up"}
-      </Button>
+      <div className="mt-4 text-center text-sm text-cyan-300">
+        <p className="font-semibold">
+          {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+          <span
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="cursor-pointer text-cyan-300 transition-colors"
+          >
+            {isSignUp ? 'Login here' : 'Sign up here'}
+          </span>
+        </p>
+      </div>
     </div>
   );
 }
